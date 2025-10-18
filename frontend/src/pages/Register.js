@@ -246,7 +246,7 @@ function Register() {
         </div>
       </div>
 
-      <style jsx>{`
+      <style>{`
         .bg-grid-pattern {
           background-image:
             linear-gradient(rgba(0, 0, 0, 0.1) 1px, transparent 1px),
