@@ -1,0 +1,128 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // User can be associated with multiple tenants
+  userTenants UserTenant[]
+}
+
+model Tenant {
+  id                  String  @id @default(cuid())
+  name                String
+  shopifyDomain       String  @unique
+  shopifyAccessToken  String? 
+  isActive            Boolean @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  
+  // Relationships
+  userTenants UserTenant[]
+  customers   Customer[]
+  products    Product[]
+  orders      Order[]
+}
+
+model UserTenant {
+  id       String @id @default(cuid())
+  userId   String
+  tenantId String
+  role     String @default("admin") 
+  
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, tenantId])
+}
+
+model Customer {
+  id                String   @id @default(cuid())
+  tenantId          String
+  shopifyCustomerId String  
+  email             String?
+  firstName         String?
+  lastName          String?
+  phone             String?
+  totalSpent        Decimal? @default(0)
+  ordersCount       Int?     @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  tenant Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  orders Order[]
+  
+  @@unique([tenantId, shopifyCustomerId])
+}
+
+model Product {
+  id               String   @id @default(cuid())
+  tenantId         String
+  shopifyProductId String   // Shopify's product ID
+  title            String
+  description      String?
+  handle           String?
+  vendor           String?
+  productType      String?
+  tags             String[] @default([])
+  status           String   @default("active")
+  images           String[] @default([])
+  variants         Json?    // Store variants as JSON
+  price            Decimal? @default(0)
+  compareAtPrice   Decimal?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  
+  tenant     Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  orderItems OrderItem[]
+  
+  @@unique([tenantId, shopifyProductId])
+}
+
+model Order {
+  id                String   @id @default(cuid())
+  tenantId          String
+  shopifyOrderId    String   // Shopify's order ID
+  customerId        String?
+  orderNumber       String?
+  totalPrice        Decimal  @default(0)
+  subtotalPrice     Decimal  @default(0)
+  taxesIncluded     Boolean  @default(false)
+  currency          String   @default("USD")
+  financialStatus   String?
+  fulfillmentStatus String?
+  email             String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  processedAt       DateTime?
+  
+  tenant     Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer   Customer?   @relation(fields: [customerId], references: [id])
+  orderItems OrderItem[]
+  
+  @@unique([tenantId, shopifyOrderId])
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  productId String?
+  title     String
+  quantity  Int     @default(1)
+  price     Decimal @default(0)
+  
+  order   Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id])
+}
