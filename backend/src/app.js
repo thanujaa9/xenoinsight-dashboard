@@ -12,7 +12,7 @@ const PORT = process.env.PORT || 3001;
 
 app.use(cors({
   origin: [
-    'https://xenoinsight-dashboard-frontend.onrender.com',
+    'https://xenoinsight-dashboard-1.onrender.com',
     'http://localhost:3000'
   ],
   credentials: true,
